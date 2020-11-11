@@ -17,13 +17,17 @@ namespace mm {
 namespace internal {
 
 template <typename Value>
-class ThreadRegistryImpl {
+class ThreadSafeIntrusiveList {
 public:
+    class Iterable : private NoCopy {
+    };
+
     template <typename... Args>
     Value* emplace(Args... args);
 
     void erase(Value* value);
 
+    Iterable iter();
 private:
 };
 
@@ -34,20 +38,22 @@ public:
     static ThreadRegistry& instance();
 
     ThreadData* Register() {
-        auto* data = registryImpl_.emplace();
+        auto* threadData = list_.emplace();
         auto& currentData = currentThreadData;
         RuntimeAssert(currentData == nullptr, "This thread already had some data assigned to it.");
-        currentData = data;
-        return data;
+        currentData = threadData;
+        return threadData;
     }
 
-    void Unregister(ThreadData* data) { registryImpl_.erase(data); }
+    void Unregister(ThreadData* threadData) { list_.erase(threadData); }
+
+    internal::ThreadSafeIntrusiveList<ThreadData>::Iterable Iter() { return list_.iter(); }
 
 private:
     ThreadRegistry() = default;
     ~ThreadRegistry() = default;
 
-    internal::ThreadRegistryImpl<ThreadData> registryImpl_;
+    internal::ThreadSafeIntrusiveList<ThreadData> list_;
 };
 
 } // namespace mm

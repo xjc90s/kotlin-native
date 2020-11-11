@@ -57,7 +57,31 @@ class LockGuard {
   LockGuard& operator=(const LockGuard&) = delete;
 };
 
-// A helper for implementing classes with disabled copy and move constructors.
+// A helper for implementing classes with disabled copy constructor and copy assignment.
+// Usage:
+// class A: private NoCopy {
+//     ...
+// };
+// Prefer private inheritance to discourage casting instances of `A` to instances
+// of `NoCopy`.
+class NoCopy {
+public:
+    NoCopy(const NoCopy&) = delete;
+    NoCopy& operator=(const NoCopy&) = delete;
+
+protected:
+    // Hide constructors and assignments so that nobody creates an instance of NoCopy on its own.
+    NoCopy() = default;
+    NoCopy(NoCopy&&) = default;
+    NoCopy& operator=(NoCopy&&) = default;
+
+    // Hide destructor because it's non-virtual:
+    // leaving it public would allow to destruct via `NoCopy`,
+    // which would require a virtual destructor to operate correctly
+    ~NoCopy() = default;
+};
+
+// A helper for implementing classes with disabled copy and move constructors, and copy and move assignments.
 // Usage:
 // class A: private NoCopyOrMove {
 //     ...
