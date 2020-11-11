@@ -9,11 +9,7 @@ namespace kotlin {
 namespace mm {
 
 // static
-ThreadRegistry& ThreadRegistry::instance() {
-    // No need to run a destructor for the registry at exit.
-    static ThreadRegistry registry [[clang::no_destroy]];
-    return registry;
-}
+ThreadRegistry ThreadRegistry::instance_;
 
 } // namespace mm
 } // namespace kotlin

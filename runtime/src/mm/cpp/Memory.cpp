@@ -29,7 +29,7 @@ struct MemoryState {
 static_assert(std::is_standard_layout<MemoryState>::value, "MemoryState must be standard layout");
 
 MemoryState* InitMemory() {
-    kotlin::mm::ThreadData* data = kotlin::mm::ThreadRegistry::instance().Register();
+    auto* data = kotlin::mm::ThreadRegistry::instance().RegisterCurrentThread();
     return MemoryState::fromThreadData(data);
 }
 
