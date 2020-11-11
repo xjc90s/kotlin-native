@@ -65,7 +65,7 @@ class LockGuard {
 // Prefer private inheritance to discourage casting instances of `A` to instances
 // of `NoCopy`.
 class NoCopy {
-// Hide constructors, assignments and destructor, to discourage operating on an instance of `NoCopy`.
+    // Hide constructors, assignments and destructor, to discourage operating on an instance of `NoCopy`.
 protected:
     NoCopy() = default;
     NoCopy(const NoCopy&) = delete;
@@ -87,7 +87,7 @@ protected:
 // Prefer private inheritance to discourage casting instances of `A` to instances
 // of `NoCopyOrMove`.
 class NoCopyOrMove {
-// Hide constructors, assignments and destructor, to discourage operating on an instance of `NoCopyOrMove`.
+    // Hide constructors, assignments and destructor, to discourage operating on an instance of `NoCopyOrMove`.
 protected:
     NoCopyOrMove() = default;
     NoCopyOrMove(const NoCopyOrMove&) = delete;

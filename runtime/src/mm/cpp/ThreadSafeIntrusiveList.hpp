@@ -14,7 +14,7 @@ namespace kotlin {
 namespace mm {
 
 template <typename Value>
-class ThreadSafeIntrusiveList: private NoCopyOrMove {
+class ThreadSafeIntrusiveList : private NoCopyOrMove {
 public:
     class Iterable : private NoCopy {
     public:
@@ -30,7 +30,7 @@ public:
     Iterable iter();
 
 private:
-    struct Node: private NoCopyOrMove {
+    struct Node : private NoCopyOrMove {
         template <typename... Args>
         Node(Args... args) : value(args...) {}
 

@@ -15,13 +15,9 @@ extern "C" {
 struct MemoryState {
     kotlin::mm::ThreadData data;
 
-    ALWAYS_INLINE static MemoryState* fromThreadData(kotlin::mm::ThreadData* data) {
-        return reinterpret_cast<MemoryState*>(data);
-    }
+    ALWAYS_INLINE static MemoryState* fromThreadData(kotlin::mm::ThreadData* data) { return reinterpret_cast<MemoryState*>(data); }
 
-    ALWAYS_INLINE kotlin::mm::ThreadData* toThreadData() {
-        return reinterpret_cast<kotlin::mm::ThreadData*>(this);
-    }
+    ALWAYS_INLINE kotlin::mm::ThreadData* toThreadData() { return reinterpret_cast<kotlin::mm::ThreadData*>(this); }
 };
 
 // It's valid to `reinterpret_cast` between struct type and it's first data member.
