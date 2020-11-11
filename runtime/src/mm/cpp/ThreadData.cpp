@@ -3,16 +3,15 @@
  * that can be found in the LICENSE file.
  */
 
-#include "ThreadRegistry.hpp"
+#include "ThreadData.hpp"
 
 namespace kotlin {
 namespace mm {
 
 // static
-ThreadRegistry& ThreadRegistry::instance() {
-    // No need to run a destructor for the registry at exit.
-    static ThreadRegistry registry [[clang::no_destroy]];
-    return registry;
+ThreadData& ThreadData::currentThreadInstance() {
+    thread_local ThreadData data;
+    return data;
 }
 
 } // namespace mm

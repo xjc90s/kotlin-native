@@ -17,6 +17,9 @@
 #include <cstdint>
 #include "KAssert.h"
 
+#ifndef RUNTIME_UTILS_H
+#define RUNTIME_UTILS_H
+
 class SimpleMutex {
  private:
   int32_t atomicInt = 0;
@@ -77,3 +80,5 @@ protected:
     // which would require a virtual destructor to operate correctly
     ~NoCopyOrMove() = default;
 };
+
+#endif // RUNTIME_UTILS_H

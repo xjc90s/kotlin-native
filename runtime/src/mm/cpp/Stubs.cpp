@@ -47,8 +47,8 @@ static void destroyMetaObject(TypeInfo** location) {
 
 extern "C" {
 
-void RestoreMemory(MemoryState* memoryState) {
-    RuntimeCheck(false, "Unimplemented");
+void RestoreMemory(MemoryState*) {
+    // TODO: Remove this function when legacy MM is gone.
 }
 
 RUNTIME_NOTHROW OBJ_GETTER(AllocInstance, const TypeInfo* type_info) {

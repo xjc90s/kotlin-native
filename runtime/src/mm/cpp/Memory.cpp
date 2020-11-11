@@ -5,6 +5,7 @@
 
 #include "Memory.h"
 
+#include "ThreadData.hpp"
 #include "ThreadRegistry.hpp"
 
 extern "C" {

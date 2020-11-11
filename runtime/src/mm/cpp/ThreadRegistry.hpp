@@ -8,6 +8,7 @@
 
 #include <pthread.h>
 
+#include "ThreadData.hpp"
 #include "Utils.h"
 
 namespace kotlin {
@@ -18,24 +19,13 @@ namespace internal {
 template <typename Key, typename Value>
 class ThreadRegistryImpl {
 public:
-    void Register(Key key, Value value);
-    void Unregister(Key key);
+    void insert(Key key, Value value);
+    void erase(Key key);
 
 private:
 };
 
 } // namespace internal
-
-class ThreadData final : private NoCopyOrMove {
-public:
-    static ThreadData& currentThreadInstance();
-
-    const pthread_t threadId = pthread_self();
-
-private:
-    ThreadData() = default;
-    ~ThreadData() = default;
-};
 
 class ThreadRegistry final : private NoCopyOrMove {
 public:
@@ -43,21 +33,17 @@ public:
 
     ThreadData* Register() {
         auto& data = ThreadData::currentThreadInstance();
-        registryImpl_.Register(data.threadId, &data);
+        registryImpl_.insert(data.threadId(), &data);
         return &data;
     }
 
-    void Unregister(ThreadData* data) { registryImpl_.Unregister(data->threadId); }
+    void Unregister(ThreadData* data) { registryImpl_.erase(data->threadId()); }
 
 private:
-    using ThreadKey = pthread_t;
-
     ThreadRegistry() = default;
     ~ThreadRegistry() = default;
 
-    static ThreadKey currentThreadKey() { return pthread_self(); }
-
-    internal::ThreadRegistryImpl<ThreadKey, ThreadData*> registryImpl_;
+    internal::ThreadRegistryImpl<pthread_t, ThreadData*> registryImpl_;
 };
 
 } // namespace mm
