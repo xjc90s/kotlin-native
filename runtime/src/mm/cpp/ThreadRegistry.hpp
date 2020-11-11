@@ -16,11 +16,13 @@ namespace mm {
 
 namespace internal {
 
-template <typename Key, typename Value>
+template <typename Value>
 class ThreadRegistryImpl {
 public:
-    void insert(Key key, Value value);
-    void erase(Key key);
+    template <typename... Args>
+    Value* emplace(Args... args);
+
+    void erase(Value* value);
 
 private:
 };
@@ -32,18 +34,20 @@ public:
     static ThreadRegistry& instance();
 
     ThreadData* Register() {
-        auto& data = ThreadData::currentThreadInstance();
-        registryImpl_.insert(data.threadId(), &data);
-        return &data;
+        auto* data = registryImpl_.emplace();
+        auto& currentData = currentThreadData;
+        RuntimeAssert(currentData == nullptr, "This thread already had some data assigned to it.");
+        currentData = data;
+        return data;
     }
 
-    void Unregister(ThreadData* data) { registryImpl_.erase(data->threadId()); }
+    void Unregister(ThreadData* data) { registryImpl_.erase(data); }
 
 private:
     ThreadRegistry() = default;
     ~ThreadRegistry() = default;
 
-    internal::ThreadRegistryImpl<pthread_t, ThreadData*> registryImpl_;
+    internal::ThreadRegistryImpl<ThreadData> registryImpl_;
 };
 
 } // namespace mm
