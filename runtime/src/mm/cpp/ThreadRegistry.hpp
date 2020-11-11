@@ -32,8 +32,12 @@ public:
     void erase(Value* value);
 
     Iterable iter();
+
 private:
-    struct Node {
+    struct Node: private NoCopyOrMove {
+        template <typename... Args>
+        Node(Args... args) : value(args...) {}
+
         Value value;
         Node* next = nullptr;
         Node* prev = nullptr;
