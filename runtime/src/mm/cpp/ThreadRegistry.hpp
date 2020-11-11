@@ -7,6 +7,7 @@
 #define RUNTIME_MM_THREAD_REGISTRY_H
 
 #include <pthread.h>
+#include <type_traits>
 
 #include "ThreadData.hpp"
 #include "Utils.h"
@@ -17,9 +18,12 @@ namespace mm {
 namespace internal {
 
 template <typename Value>
-class ThreadSafeIntrusiveList {
+class ThreadSafeIntrusiveList: private NoCopyOrMove {
 public:
     class Iterable : private NoCopy {
+    public:
+        Value* begin();
+        Value* end();
     };
 
     template <typename... Args>
@@ -29,6 +33,20 @@ public:
 
     Iterable iter();
 private:
+    struct Node {
+        Value value;
+        Node* next = nullptr;
+        Node* prev = nullptr;
+
+        ALWAYS_INLINE static Node* fromValue(Value* value) { return reinterpret_cast<Node*>(value); }
+        ALWAYS_INLINE Value* asValue() { return reinterpret_cast<Value*>(this); }
+    };
+
+    // It's valid to `reinterpret_cast` between struct type and it's first data member.
+    // See https://en.cppreference.com/w/cpp/language/data_members#Standard_layout
+    static_assert(std::is_standard_layout<Node>::value, "Node must be standard layout");
+
+    Node* root_ = nullptr;
 };
 
 } // namespace internal
