@@ -65,19 +65,17 @@ class LockGuard {
 // Prefer private inheritance to discourage casting instances of `A` to instances
 // of `NoCopy`.
 class NoCopy {
-public:
-    NoCopy(const NoCopy&) = delete;
-    NoCopy& operator=(const NoCopy&) = delete;
-
+// Hide constructors, assignments and destructor, to discourage operating on an instance of `NoCopy`.
 protected:
-    // Hide constructors and assignments so that nobody creates an instance of NoCopy on its own.
     NoCopy() = default;
+    NoCopy(const NoCopy&) = delete;
     NoCopy(NoCopy&&) = default;
+
+    NoCopy& operator=(const NoCopy&) = delete;
     NoCopy& operator=(NoCopy&&) = default;
 
-    // Hide destructor because it's non-virtual:
-    // leaving it public would allow to destruct via `NoCopy`,
-    // which would require a virtual destructor to operate correctly
+    // Not virtual by design. Since this class hides this destructor, no one can destroy an
+    // instance of `NoCopy` directly, so this destructor is never called in a virtual manner.
     ~NoCopy() = default;
 };
 
@@ -89,19 +87,17 @@ protected:
 // Prefer private inheritance to discourage casting instances of `A` to instances
 // of `NoCopyOrMove`.
 class NoCopyOrMove {
-public:
+// Hide constructors, assignments and destructor, to discourage operating on an instance of `NoCopyOrMove`.
+protected:
+    NoCopyOrMove() = default;
     NoCopyOrMove(const NoCopyOrMove&) = delete;
     NoCopyOrMove(NoCopyOrMove&&) = delete;
+
     NoCopyOrMove& operator=(const NoCopyOrMove&) = delete;
     NoCopyOrMove& operator=(NoCopyOrMove&&) = delete;
 
-protected:
-    // Hide default constructor so that nobody creates an instance of NoCopyOrMove on its own.
-    NoCopyOrMove() = default;
-
-    // Hide destructor because it's non-virtual:
-    // leaving it public would allow to destruct via `NoCopyOrMove`,
-    // which would require a virtual destructor to operate correctly
+    // Not virtual by design. Since this class hides this destructor, no one can destroy an
+    // instance of `NoCopyOrMove` directly, so this destructor is never called in a virtual manner.
     ~NoCopyOrMove() = default;
 };
 
