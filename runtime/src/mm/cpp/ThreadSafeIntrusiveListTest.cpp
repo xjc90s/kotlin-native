@@ -155,7 +155,7 @@ TEST(ThreadSafeIntrusiveListTest, ConcurrentErase) {
     EXPECT_THAT(actual, testing::IsEmpty());
 }
 
-TEST(ThreadSafeIntrusiveListTest, IterWhileConcurrentEmplace) {
+TEST(ThreadSafeIntrusiveListTest, DISABLED_IterWhileConcurrentEmplace) {
     IntList list;
     constexpr int kStartCount = 50;
     constexpr int kThreadCount = 100;
@@ -208,7 +208,7 @@ TEST(ThreadSafeIntrusiveListTest, IterWhileConcurrentEmplace) {
     EXPECT_THAT(actualAfter, testing::UnorderedElementsAreArray(expectedAfter));
 }
 
-TEST(ThreadSafeIntrusiveListTest, IterWhileConcurrentErase) {
+TEST(ThreadSafeIntrusiveListTest, DISABLED_IterWhileConcurrentErase) {
     IntList list;
     constexpr int kThreadCount = 100;
 
