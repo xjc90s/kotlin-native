@@ -8,7 +8,5 @@
 namespace kotlin {
 namespace mm {
 
-thread_local ThreadData* currentThreadData = nullptr;
-
 } // namespace mm
 } // namespace kotlin

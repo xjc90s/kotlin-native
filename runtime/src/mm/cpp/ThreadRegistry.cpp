@@ -11,5 +11,8 @@ namespace mm {
 // static
 ThreadRegistry ThreadRegistry::instance_;
 
+// static
+thread_local ThreadData* ThreadRegistry::currentThreadData_ = nullptr;
+
 } // namespace mm
 } // namespace kotlin

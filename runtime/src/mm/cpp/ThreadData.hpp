@@ -24,10 +24,6 @@ private:
     const pthread_t threadId_ = pthread_self();
 };
 
-// Try not to use it very often, as (1) thread local access can be slow on some platforms,
-// (2) TLS gets deallocated before our thread destruction hooks run.
-extern thread_local ThreadData* currentThreadData;
-
 } // namespace mm
 } // namespace kotlin
 
