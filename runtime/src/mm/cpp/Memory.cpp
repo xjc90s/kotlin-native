@@ -9,29 +9,19 @@
 
 #include "ThreadData.hpp"
 #include "ThreadRegistry.hpp"
+#include "Utils.h"
 
 extern "C" {
 
-struct MemoryState {
-    kotlin::mm::ThreadData data;
-
-    ALWAYS_INLINE static MemoryState* fromThreadData(kotlin::mm::ThreadData* data) { return reinterpret_cast<MemoryState*>(data); }
-
-    ALWAYS_INLINE kotlin::mm::ThreadData* toThreadData() { return reinterpret_cast<kotlin::mm::ThreadData*>(this); }
-};
-
-// It's valid to `reinterpret_cast` between struct type and it's first data member.
-// See https://en.cppreference.com/w/cpp/language/data_members#Standard_layout
-static_assert(std::is_standard_layout<MemoryState>::value, "MemoryState must be standard layout");
-static_assert(offsetof(MemoryState, data) == 0, "data must be at 0 offset");
+WRAP_TYPE(struct, MemoryState, kotlin::mm::ThreadData);
 
 MemoryState* InitMemory() {
     auto* data = kotlin::mm::ThreadRegistry::instance().RegisterCurrentThread();
-    return MemoryState::fromThreadData(data);
+    return MemoryState::from(data);
 }
 
 void DeinitMemory(MemoryState* state) {
-    kotlin::mm::ThreadRegistry::instance().Unregister(state->toThreadData());
+    kotlin::mm::ThreadRegistry::instance().Unregister(state->to());
 }
 
 } // extern "C"
