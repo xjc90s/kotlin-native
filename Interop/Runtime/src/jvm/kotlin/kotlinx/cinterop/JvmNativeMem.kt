@@ -95,17 +95,79 @@ internal object nativeMemUtils {
         return unsafe.allocateInstance(T::class.java) as T
     }
 
-    fun alloc(size: Long, align: Int): NativePointed {
-        val address = unsafe.allocateMemory(
-                if (size == 0L) 1L else size // It is a hack: `sun.misc.Unsafe` can't allocate zero bytes
-        )
+    private fun alignUp(x: Long, align: Int) = (x + align - 1) and (align - 1).toLong().inv()
+    private fun alignUp(x: Int, align: Int) = (x + align - 1) and (align - 1).inv()
 
-        if (address % align != 0L) TODO(align.toString())
-        return interpretOpaquePointed(address)
+    // 256 buckets for sizes <= 2048 padded to 8
+    // 256 buckets for sizes <= 64KB padded to 256
+    // 256 buckets for sizes <= 1MB padded to 4096
+    private val smallChunks = LongArray(256)
+    private val mediumChunks = LongArray(256)
+    private val bigChunks = LongArray(256)
+
+    // Chunk layout: [chunk size,...padding...,diff to start,aligned data start,.....data.....]
+    fun alloc(size: Long, align: Int): NativePointed {
+        val chunkHeaderSize = 8 // chunk size + alignment hop size.
+        val totalChunkSize = chunkHeaderSize + size + align
+        val ptr = chunkHeaderSize + when {
+            totalChunkSize <= 2048 -> allocFromFreeList(totalChunkSize.toInt(), 8, smallChunks)
+            totalChunkSize <= 64 * 1024 -> allocFromFreeList(totalChunkSize.toInt(), 256, mediumChunks)
+            totalChunkSize <= 1024 * 1024 -> allocFromFreeList(totalChunkSize.toInt(), 4096, bigChunks)
+            else -> unsafe.allocateMemory(totalChunkSize).also {
+                // The actual size is not used. Just put value bigger than the biggest threshold.
+                unsafe.putInt(it, Int.MAX_VALUE)
+            }
+        }
+        val alignedPtr = alignUp(ptr, align)
+        unsafe.putInt(alignedPtr - 4, (alignedPtr - ptr).toInt())
+        return interpretOpaquePointed(alignedPtr)
+    }
+
+    private fun allocFromFreeList(size: Int, align: Int, freeList: LongArray): NativePtr {
+        val paddedSize = alignUp(size, align)
+        val index = paddedSize / align - 1
+        val chunk = freeList[index]
+        val ptr = if (chunk == 0L)
+            allocRaw(paddedSize)
+        else {
+            val nextChunk = unsafe.getLong(chunk)
+            freeList[index] = nextChunk
+            chunk
+        }
+        unsafe.putInt(ptr, paddedSize)
+        return ptr
+    }
+
+    private fun freeToFreeList(paddedSize: Int, align: Int, freeList: LongArray, chunk: NativePtr) {
+        require(paddedSize > 0 && paddedSize % align == 0)
+        val index = paddedSize / align - 1
+        unsafe.putLong(chunk, freeList[index])
+        freeList[index] = chunk
+    }
+
+    private const val RawChunkSize: Long = 4 * 1024 * 1024
+    private val rawChunks = mutableListOf<NativePtr>()
+    private var rawOffset = 0
+
+    private fun allocRaw(size: Int): NativePtr {
+        if (rawChunks.isEmpty() || rawOffset + size > RawChunkSize) {
+            val newRawChunk = unsafe.allocateMemory(RawChunkSize)
+            rawChunks.add(newRawChunk)
+            rawOffset = size
+            return newRawChunk
+        }
+        return (rawChunks.last() + rawOffset).also { rawOffset += size }
     }
 
     fun free(mem: NativePtr) {
-        unsafe.freeMemory(mem)
+        val chunkStart = mem - 8 - unsafe.getInt(mem - 4)
+        val chunkSize = unsafe.getInt(chunkStart)
+        when {
+            chunkSize <= 2048 -> freeToFreeList(chunkSize, 8, smallChunks, chunkStart)
+            chunkSize <= 64 * 1024 -> freeToFreeList(chunkSize, 256, mediumChunks, chunkStart)
+            chunkSize <= 1024 * 1024 -> freeToFreeList(chunkSize, 4096, bigChunks, chunkStart)
+            else -> unsafe.freeMemory(chunkStart)
+        }
     }
 
     private val unsafe = with(Unsafe::class.java.getDeclaredField("theUnsafe")) {
