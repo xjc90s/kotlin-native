@@ -10,6 +10,7 @@
 #include <mutex>
 #include <type_traits>
 
+#include "CppSupport.hpp"
 #include "Utils.h"
 
 namespace kotlin {
@@ -55,7 +56,7 @@ public:
 
     template <typename... Args>
     Value* emplace(Args... args) noexcept {
-        auto node = std::make_unique<Node>(args...);
+        auto node = kotlin::make_unique<Node>(args...);
         auto* result = node.get()->asValue();
         std::lock_guard<SimpleMutex> guard(mutex_);
         if (root_) {
