@@ -13,15 +13,18 @@
 namespace kotlin {
 namespace mm {
 
+// `ThreadData` is supposed to be thread local singleton.
+// Pin it in memory to prevent accidental copying.
 class ThreadData final : private NoCopyOrMove {
 public:
-    ThreadData() = default;
+    ThreadData(pthread_t threadId) : threadId_(threadId) {}
+
     ~ThreadData() = default;
 
     pthread_t threadId() const { return threadId_; }
 
 private:
-    const pthread_t threadId_ = pthread_self();
+    const pthread_t threadId_;
 };
 
 } // namespace mm

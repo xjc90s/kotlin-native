@@ -20,7 +20,7 @@ public:
     static ThreadRegistry& instance() { return instance_; }
 
     ThreadData* RegisterCurrentThread() {
-        ThreadData* threadData = list_.emplace();
+        ThreadData* threadData = list_.emplace(pthread_self());
         ThreadData*& currentData = currentThreadData_;
         RuntimeAssert(currentData == nullptr, "This thread already had some data assigned to it.");
         currentData = threadData;
