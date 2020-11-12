@@ -67,6 +67,9 @@ public:
         return result;
     }
 
+    // You can only `erase` `Value`s that were returned by `emplace`. Trying
+    // to erase some other value is undefined behaviour. Using `value` after
+    // `erase` is undefined behaviour.
     void erase(Value* value) noexcept {
         auto* node = Node::fromValue(value);
         std::lock_guard<SimpleMutex> guard(mutex_);
@@ -86,6 +89,13 @@ public:
         }
     }
 
+    // Returned value locks `this` to perform safe iteration. `this` unlocks when
+    // `Iterable` gets out of scope. Example usage:
+    // for (auto& value: list.iter()) {
+    //    // Do something with `value`, there's a guarantee that it'll not be
+    //    // destroyed mid-iteration.
+    // }
+    // // At this point `list` is unlocked.
     Iterable iter() noexcept { return Iterable(this); }
 
 private:
