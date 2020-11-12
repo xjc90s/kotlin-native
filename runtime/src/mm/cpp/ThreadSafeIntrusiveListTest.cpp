@@ -99,7 +99,7 @@ TEST(ThreadSafeIntrusiveListTest, EraseToEmptyEmplaceAndIter) {
 TEST(ThreadSafeIntrusiveListTest, ConcurrentEmplace) {
     IntList list;
     constexpr int kThreadCount = 100;
-    std::atomic<bool> canStart;
+    std::atomic<bool> canStart(false);
     std::vector<std::thread> threads;
     std::vector<int> expected;
     for (int i = 0; i < kThreadCount; ++i) {
@@ -132,7 +132,7 @@ TEST(ThreadSafeIntrusiveListTest, ConcurrentErase) {
         items.push_back(list.emplace(i));
     }
 
-    std::atomic<bool> canStart;
+    std::atomic<bool> canStart(false);
     std::vector<std::thread> threads;
     for (int* item : items) {
         threads.emplace_back([item, &list, &canStart]() {
@@ -155,7 +155,7 @@ TEST(ThreadSafeIntrusiveListTest, ConcurrentErase) {
     EXPECT_THAT(actual, testing::IsEmpty());
 }
 
-TEST(ThreadSafeIntrusiveListTest, DISABLED_IterWhileConcurrentEmplace) {
+TEST(ThreadSafeIntrusiveListTest, IterWhileConcurrentEmplace) {
     IntList list;
     constexpr int kStartCount = 50;
     constexpr int kThreadCount = 100;
@@ -168,8 +168,8 @@ TEST(ThreadSafeIntrusiveListTest, DISABLED_IterWhileConcurrentEmplace) {
         list.emplace(i);
     }
 
-    std::atomic<bool> canStart;
-    std::atomic<int> startedCount;
+    std::atomic<bool> canStart(false);
+    std::atomic<int> startedCount(0);
     std::vector<std::thread> threads;
     for (int i = 0; i < kThreadCount; ++i) {
         int j = i + kStartCount;
@@ -208,7 +208,7 @@ TEST(ThreadSafeIntrusiveListTest, DISABLED_IterWhileConcurrentEmplace) {
     EXPECT_THAT(actualAfter, testing::UnorderedElementsAreArray(expectedAfter));
 }
 
-TEST(ThreadSafeIntrusiveListTest, DISABLED_IterWhileConcurrentErase) {
+TEST(ThreadSafeIntrusiveListTest, IterWhileConcurrentErase) {
     IntList list;
     constexpr int kThreadCount = 100;
 
@@ -219,8 +219,8 @@ TEST(ThreadSafeIntrusiveListTest, DISABLED_IterWhileConcurrentErase) {
         items.push_back(list.emplace(i));
     }
 
-    std::atomic<bool> canStart;
-    std::atomic<int> startedCount;
+    std::atomic<bool> canStart(false);
+    std::atomic<int> startedCount(0);
     std::vector<std::thread> threads;
     for (int* item : items) {
         threads.emplace_back([item, &list, &canStart, &startedCount]() {
