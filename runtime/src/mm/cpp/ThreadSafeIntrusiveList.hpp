@@ -93,6 +93,7 @@ private:
         Node(Args... args) : value(args...) {}
 
         Value value;
+        // TODO: Consider adding a marker for checks in debug mode if Value was constructed inside the Node.
         std::unique_ptr<Node> next;
         Node* previous = nullptr; // weak
 
