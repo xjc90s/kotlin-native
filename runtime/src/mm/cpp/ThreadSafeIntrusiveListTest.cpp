@@ -259,10 +259,14 @@ TEST(ThreadSafeIntrusiveListTest, DISABLED_IterWhileConcurrentErase) {
 
 namespace {
 
-struct Pinned : private NoCopyOrMove {
-    Pinned(int i) : i(i) {}
+class Pinned : private NoCopyOrMove {
+public:
+    Pinned(int value) : value_(value) {}
 
-    int i;
+    int value() const { return value_; }
+
+private:
+    int value_;
 };
 
 } // namespace
@@ -271,8 +275,8 @@ TEST(ThreadSafeIntrusiveListTest, PinnedType) {
     ThreadSafeIntrusiveList<Pinned> list;
     constexpr int kFirst = 1;
 
-    auto* item = list.emplace(kFirst);
-    EXPECT_THAT(item->i, kFirst);
+    Pinned* item = list.emplace(kFirst);
+    EXPECT_THAT(item->value(), kFirst);
 
     list.erase(item);
 

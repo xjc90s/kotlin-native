@@ -23,6 +23,7 @@ struct MemoryState {
 // It's valid to `reinterpret_cast` between struct type and it's first data member.
 // See https://en.cppreference.com/w/cpp/language/data_members#Standard_layout
 static_assert(std::is_standard_layout<MemoryState>::value, "MemoryState must be standard layout");
+static_assert(offsetof(MemoryState, data) == 0, "data must be at 0 offset");
 
 MemoryState* InitMemory() {
     auto* data = kotlin::mm::ThreadRegistry::instance().RegisterCurrentThread();

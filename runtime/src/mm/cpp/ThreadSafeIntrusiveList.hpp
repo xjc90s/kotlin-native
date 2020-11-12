@@ -99,7 +99,7 @@ public:
     Iterable iter() noexcept { return Iterable(this); }
 
 private:
-    struct Node : private NoCopyOrMove {
+    struct Node {
         template <typename... Args>
         Node(Args... args) : value(args...) {}
 
@@ -115,6 +115,7 @@ private:
     // It's valid to `reinterpret_cast` between struct type and it's first data member.
     // See https://en.cppreference.com/w/cpp/language/data_members#Standard_layout
     static_assert(std::is_standard_layout<Node>::value, "Node must be standard layout");
+    static_assert(offsetof(Node, value) == 0, "value must be at 0 offset");
 
     std::unique_ptr<Node> root_;
     // TODO: Consider different locking mechanisms.
