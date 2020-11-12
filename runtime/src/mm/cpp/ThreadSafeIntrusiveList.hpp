@@ -32,13 +32,9 @@ public:
             return *this;
         }
 
-        bool operator==(const Iterator& rhs) const {
-            return node_ == rhs.node_;
-        }
+        bool operator==(const Iterator& rhs) const { return node_ == rhs.node_; }
 
-        bool operator!=(const Iterator& rhs) const {
-            return node_ != rhs.node_;
-        }
+        bool operator!=(const Iterator& rhs) const { return node_ != rhs.node_; }
 
     private:
         Node* node_;
@@ -48,13 +44,9 @@ public:
     public:
         explicit Iterable(ThreadSafeIntrusiveList* list) : list_(list), guard_(list->mutex_) {}
 
-        Iterator begin() {
-            return Iterator(list_->root_.get());
-        }
+        Iterator begin() { return Iterator(list_->root_.get()); }
 
-        Iterator end() {
-            return Iterator(nullptr);
-        }
+        Iterator end() { return Iterator(nullptr); }
 
     private:
         ThreadSafeIntrusiveList* list_;
@@ -93,9 +85,7 @@ public:
         }
     }
 
-    Iterable iter() noexcept {
-        return Iterable(this);
-    }
+    Iterable iter() noexcept { return Iterable(this); }
 
 private:
     struct Node : private NoCopyOrMove {
