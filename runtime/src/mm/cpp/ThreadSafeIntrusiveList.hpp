@@ -24,18 +24,18 @@ private:
 public:
     class Iterator {
     public:
-        explicit Iterator(Node* node) : node_(node) {}
+        explicit Iterator(Node* node) noexcept : node_(node) {}
 
-        Value& operator*() { return *node_->asValue(); }
+        Value& operator*() noexcept { return *node_->asValue(); }
 
-        Iterator& operator++() {
+        Iterator& operator++() noexcept {
             node_ = node_->next.get();
             return *this;
         }
 
-        bool operator==(const Iterator& rhs) const { return node_ == rhs.node_; }
+        bool operator==(const Iterator& rhs) const noexcept { return node_ == rhs.node_; }
 
-        bool operator!=(const Iterator& rhs) const { return node_ != rhs.node_; }
+        bool operator!=(const Iterator& rhs) const noexcept { return node_ != rhs.node_; }
 
     private:
         Node* node_;
@@ -43,11 +43,11 @@ public:
 
     class Iterable : private NoCopy {
     public:
-        explicit Iterable(ThreadSafeIntrusiveList* list) : list_(list), guard_(list->mutex_) {}
+        explicit Iterable(ThreadSafeIntrusiveList* list) noexcept : list_(list), guard_(list->mutex_) {}
 
-        Iterator begin() { return Iterator(list_->root_.get()); }
+        Iterator begin() noexcept { return Iterator(list_->root_.get()); }
 
-        Iterator end() { return Iterator(nullptr); }
+        Iterator end() noexcept { return Iterator(nullptr); }
 
     private:
         ThreadSafeIntrusiveList* list_;
@@ -101,7 +101,7 @@ public:
 private:
     struct Node {
         template <typename... Args>
-        Node(Args... args) : value(args...) {}
+        Node(Args... args) noexcept : value(args...) {}
 
         Value value;
         // TODO: Consider adding a marker for checks in debug mode if Value was constructed inside the Node.
