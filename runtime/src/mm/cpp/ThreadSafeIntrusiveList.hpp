@@ -56,7 +56,7 @@ public:
     template <typename... Args>
     Value* emplace(Args... args) noexcept {
         auto node = std::make_unique<Node>(args...);
-        auto* result = node.get();
+        auto* result = node.get()->asValue();
         std::lock_guard<SimpleMutex> guard(mutex_);
         if (root_) {
             root_->previous = node.get();
@@ -77,7 +77,7 @@ public:
             return;
         }
         auto* previous = node->previous;
-        RuntmieAssert(previous != nullptr, "Only the root node doesn't have the previous node");
+        RuntimeAssert(previous != nullptr, "Only the root node doesn't have the previous node");
         auto ownedNode = std::move(previous->next);
         previous->next = std::move(node->next);
         if (auto& next = previous->next) {
