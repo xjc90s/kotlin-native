@@ -17,11 +17,11 @@ namespace mm {
 // Pin it in memory to prevent accidental copying.
 class ThreadData final : private NoCopyOrMove {
 public:
-    ThreadData(pthread_t threadId) : threadId_(threadId) {}
+    ThreadData(pthread_t threadId) noexcept : threadId_(threadId) {}
 
     ~ThreadData() = default;
 
-    pthread_t threadId() const { return threadId_; }
+    pthread_t threadId() const noexcept { return threadId_; }
 
 private:
     const pthread_t threadId_;

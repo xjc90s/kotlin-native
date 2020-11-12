@@ -17,9 +17,9 @@ namespace mm {
 
 class ThreadRegistry final : private NoCopyOrMove {
 public:
-    static ThreadRegistry& instance() { return instance_; }
+    static ThreadRegistry& instance() noexcept { return instance_; }
 
-    ThreadData* RegisterCurrentThread() {
+    ThreadData* RegisterCurrentThread() noexcept {
         ThreadData* threadData = list_.emplace(pthread_self());
         ThreadData*& currentData = currentThreadData_;
         RuntimeAssert(currentData == nullptr, "This thread already had some data assigned to it.");
@@ -29,18 +29,18 @@ public:
 
     // Can only be called with `threadData` returned from `RegisterCurrentThread`.
     // `threadData` cannot be used after this call.
-    void Unregister(ThreadData* threadData) {
+    void Unregister(ThreadData* threadData) noexcept {
         list_.erase(threadData);
         // Do not touch `currentThreadData_` as TLS may already have been deallocated.
     }
 
     // Locks `ThreadRegistry` for safe iteration.
-    ThreadSafeIntrusiveList<ThreadData>::Iterable Iter() { return list_.iter(); }
+    ThreadSafeIntrusiveList<ThreadData>::Iterable Iter() noexcept { return list_.iter(); }
 
     // Try not to use it very often, as (1) thread local access can be slow on some platforms,
     // (2) TLS gets deallocated before our thread destruction hooks run.
     // Using this after `Unregister` for the thread has been called is undefined behaviour.
-    ThreadData* CurrentThreadData() const { return currentThreadData_; }
+    ThreadData* CurrentThreadData() const noexcept { return currentThreadData_; }
 
 private:
     ThreadRegistry() = default;
