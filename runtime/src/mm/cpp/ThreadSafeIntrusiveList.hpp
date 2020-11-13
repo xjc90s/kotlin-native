@@ -6,6 +6,7 @@
 #ifndef RUNTIME_MM_THREAD_SAFE_INTRUSIVE_LIST_H
 #define RUNTIME_MM_THREAD_SAFE_INTRUSIVE_LIST_H
 
+#include <cstddef>
 #include <memory>
 #include <mutex>
 #include <type_traits>
