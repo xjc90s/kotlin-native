@@ -3,8 +3,8 @@
  * that can be found in the LICENSE file.
  */
 
-#ifndef RUNTIME_MM_THREAD_SAFE_INTRUSIVE_LIST_H
-#define RUNTIME_MM_THREAD_SAFE_INTRUSIVE_LIST_H
+#ifndef RUNTIME_SINGLE_LOCK_LIST_H
+#define RUNTIME_SINGLE_LOCK_LIST_H
 
 #include <cstddef>
 #include <memory>
@@ -14,10 +14,10 @@
 #include "Utils.h"
 
 namespace kotlin {
-namespace mm {
 
-template <typename Value>
-class ThreadSafeIntrusiveList : private NoCopyOrMove {
+// TODO: Consider different locking mechanisms.
+template <typename Value, typename Mutex = SimpleMutex>
+class SingleLockList : private NoCopyOrMove {
 private:
     struct Node;
 
@@ -43,22 +43,22 @@ public:
 
     class Iterable : private NoCopy {
     public:
-        explicit Iterable(ThreadSafeIntrusiveList* list) noexcept : list_(list), guard_(list->mutex_) {}
+        explicit Iterable(SingleLockList* list) noexcept : list_(list), guard_(list->mutex_) {}
 
         Iterator begin() noexcept { return Iterator(list_->root_.get()); }
 
         Iterator end() noexcept { return Iterator(nullptr); }
 
     private:
-        ThreadSafeIntrusiveList* list_;
-        std::unique_lock<SimpleMutex> guard_;
+        SingleLockList* list_;
+        std::unique_lock<Mutex> guard_;
     };
 
     template <typename... Args>
-    Value* emplace(Args... args) noexcept {
+    Value* Emplace(Args... args) noexcept {
         auto node = kotlin::make_unique<Node>(args...);
         auto* result = &node.get()->value;
-        std::lock_guard<SimpleMutex> guard(mutex_);
+        LockGuard<Mutex> guard(mutex_);
         if (root_) {
             root_->previous = node.get();
         }
@@ -67,12 +67,12 @@ public:
         return result;
     }
 
-    // You can only `erase` `Value`s that were returned by `emplace`. Trying
-    // to erase some other value is undefined behaviour. Using `value` after
-    // `erase` is undefined behaviour.
-    void erase(Value* value) noexcept {
+    // You can only `Erase` `Value`s that were returned by `Emplace`. Trying
+    // to Erase some other value is undefined behaviour. Using `value` after
+    // `Erase` is undefined behaviour.
+    void Erase(Value* value) noexcept {
         auto* node = Node::from(value);
-        std::lock_guard<SimpleMutex> guard(mutex_);
+        LockGuard<Mutex> guard(mutex_);
         if (root_.get() == node) {
             root_ = std::move(node->next);
             if (root_) {
@@ -91,12 +91,12 @@ public:
 
     // Returned value locks `this` to perform safe iteration. `this` unlocks when
     // `Iterable` gets out of scope. Example usage:
-    // for (auto& value: list.iter()) {
+    // for (auto& value: list.Iter()) {
     //    // Do something with `value`, there's a guarantee that it'll not be
     //    // destroyed mid-iteration.
     // }
     // // At this point `list` is unlocked.
-    Iterable iter() noexcept { return Iterable(this); }
+    Iterable Iter() noexcept { return Iterable(this); }
 
 private:
     struct Node {
@@ -112,11 +112,9 @@ private:
     };
 
     std::unique_ptr<Node> root_;
-    // TODO: Consider different locking mechanisms.
-    SimpleMutex mutex_;
+    Mutex mutex_;
 };
 
-} // namespace mm
 } // namespace kotlin
 
-#endif // RUNTIME_MM_THREAD_SAFE_INTRUSIVE_LIST_H
+#endif // RUNTIME_SINGLE_LOCK_LIST_H

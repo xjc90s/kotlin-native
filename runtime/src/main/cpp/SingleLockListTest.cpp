@@ -3,7 +3,7 @@
  * that can be found in the LICENSE file.
  */
 
-#include "ThreadSafeIntrusiveList.hpp"
+#include "SingleLockList.hpp"
 
 #include <deque>
 #include <thread>
@@ -12,91 +12,90 @@
 #include "gtest/gtest.h"
 
 namespace kotlin {
-namespace mm {
 
-using IntList = ThreadSafeIntrusiveList<int>;
+using IntList = SingleLockList<int>;
 
-TEST(ThreadSafeIntrusiveListTest, Emplace) {
+TEST(SingleLockListTest, Emplace) {
     IntList list;
     constexpr int kFirst = 1;
     constexpr int kSecond = 2;
     constexpr int kThird = 3;
-    int* first = list.emplace(kFirst);
-    int* second = list.emplace(kSecond);
-    int* third = list.emplace(kThird);
+    int* first = list.Emplace(kFirst);
+    int* second = list.Emplace(kSecond);
+    int* third = list.Emplace(kThird);
     EXPECT_THAT(*first, kFirst);
     EXPECT_THAT(*second, kSecond);
     EXPECT_THAT(*third, kThird);
 }
 
-TEST(ThreadSafeIntrusiveListTest, EmplaceAndIter) {
+TEST(SingleLockListTest, EmplaceAndIter) {
     IntList list;
     constexpr int kFirst = 1;
     constexpr int kSecond = 2;
     constexpr int kThird = 3;
-    list.emplace(kFirst);
-    list.emplace(kSecond);
-    list.emplace(kThird);
+    list.Emplace(kFirst);
+    list.Emplace(kSecond);
+    list.Emplace(kThird);
 
     std::vector<int> actual;
-    for (int element : list.iter()) {
+    for (int element : list.Iter()) {
         actual.push_back(element);
     }
 
     EXPECT_THAT(actual, testing::ElementsAre(kThird, kSecond, kFirst));
 }
 
-TEST(ThreadSafeIntrusiveListTest, EmplaceEraseAndIter) {
+TEST(SingleLockListTest, EmplaceEraseAndIter) {
     IntList list;
     constexpr int kFirst = 1;
     constexpr int kSecond = 2;
     constexpr int kThird = 3;
-    list.emplace(kFirst);
-    int* second = list.emplace(kSecond);
-    list.emplace(kThird);
-    list.erase(second);
+    list.Emplace(kFirst);
+    int* second = list.Emplace(kSecond);
+    list.Emplace(kThird);
+    list.Erase(second);
 
     std::vector<int> actual;
-    for (int element : list.iter()) {
+    for (int element : list.Iter()) {
         actual.push_back(element);
     }
 
     EXPECT_THAT(actual, testing::ElementsAre(kThird, kFirst));
 }
 
-TEST(ThreadSafeIntrusiveListTest, IterEmpty) {
+TEST(SingleLockListTest, IterEmpty) {
     IntList list;
 
     std::vector<int> actual;
-    for (int element : list.iter()) {
+    for (int element : list.Iter()) {
         actual.push_back(element);
     }
 
     EXPECT_THAT(actual, testing::IsEmpty());
 }
 
-TEST(ThreadSafeIntrusiveListTest, EraseToEmptyEmplaceAndIter) {
+TEST(SingleLockListTest, EraseToEmptyEmplaceAndIter) {
     IntList list;
     constexpr int kFirst = 1;
     constexpr int kSecond = 2;
     constexpr int kThird = 3;
     constexpr int kFourth = 4;
-    auto* first = list.emplace(kFirst);
-    auto* second = list.emplace(kSecond);
-    list.erase(first);
-    list.erase(second);
-    list.emplace(kThird);
-    list.emplace(kFourth);
+    auto* first = list.Emplace(kFirst);
+    auto* second = list.Emplace(kSecond);
+    list.Erase(first);
+    list.Erase(second);
+    list.Emplace(kThird);
+    list.Emplace(kFourth);
 
     std::vector<int> actual;
-    for (int element : list.iter()) {
+    for (int element : list.Iter()) {
         actual.push_back(element);
     }
 
     EXPECT_THAT(actual, testing::ElementsAre(kFourth, kThird));
 }
 
-TEST(ThreadSafeIntrusiveListTest, ConcurrentEmplace) {
+TEST(SingleLockListTest, ConcurrentEmplace) {
     IntList list;
     constexpr int kThreadCount = 100;
     std::atomic<bool> canStart(false);
@@ -104,10 +103,10 @@ TEST(ThreadSafeIntrusiveListTest, ConcurrentEmplace) {
     std::vector<int> expected;
     for (int i = 0; i < kThreadCount; ++i) {
         expected.push_back(i);
-        threads.emplace_back([i, &list, &canStart]() {
+        threads.Emplace_back([i, &list, &canStart]() {
             while (!canStart) {
             }
-            list.emplace(i);
+            list.Emplace(i);
         });
     }
 
@@ -117,28 +116,28 @@ TEST(ThreadSafeIntrusiveListTest, ConcurrentEmplace) {
     }
 
     std::vector<int> actual;
-    for (int element : list.iter()) {
+    for (int element : list.Iter()) {
         actual.push_back(element);
     }
 
     EXPECT_THAT(actual, testing::UnorderedElementsAreArray(expected));
 }
 
-TEST(ThreadSafeIntrusiveListTest, ConcurrentErase) {
+TEST(SingleLockListTest, ConcurrentErase) {
     IntList list;
     constexpr int kThreadCount = 100;
     std::vector<int*> items;
     for (int i = 0; i < kThreadCount; ++i) {
-        items.push_back(list.emplace(i));
+        items.push_back(list.Emplace(i));
     }
 
     std::atomic<bool> canStart(false);
     std::vector<std::thread> threads;
     for (int* item : items) {
-        threads.emplace_back([item, &list, &canStart]() {
+        threads.Emplace_back([item, &list, &canStart]() {
             while (!canStart) {
             }
-            list.erase(item);
+            list.Erase(item);
         });
     }
 
@@ -148,14 +147,14 @@ TEST(ThreadSafeIntrusiveListTest, ConcurrentErase) {
     }
 
     std::vector<int> actual;
-    for (int element : list.iter()) {
+    for (int element : list.Iter()) {
         actual.push_back(element);
     }
 
     EXPECT_THAT(actual, testing::IsEmpty());
 }
 
-TEST(ThreadSafeIntrusiveListTest, IterWhileConcurrentEmplace) {
+TEST(SingleLockListTest, IterWhileConcurrentEmplace) {
     IntList list;
     constexpr int kStartCount = 50;
     constexpr int kThreadCount = 100;
@@ -165,7 +164,7 @@ TEST(ThreadSafeIntrusiveListTest, IterWhileConcurrentEmplace) {
     for (int i = 0; i < kStartCount; ++i) {
         expectedBefore.push_front(i);
         expectedAfter.push_back(i);
-        list.emplace(i);
+        list.Emplace(i);
     }
 
     std::atomic<bool> canStart(false);
@@ -174,22 +173,22 @@ TEST(ThreadSafeIntrusiveListTest, IterWhileConcurrentEmplace) {
     for (int i = 0; i < kThreadCount; ++i) {
         int j = i + kStartCount;
         expectedAfter.push_back(j);
-        threads.emplace_back([j, &list, &canStart, &startedCount]() {
+        threads.Emplace_back([j, &list, &canStart, &startedCount]() {
             while (!canStart) {
             }
             ++startedCount;
-            list.emplace(j);
+            list.Emplace(j);
         });
     }
 
     std::vector<int> actualBefore;
     {
-        auto iter = list.iter();
+        auto iter = list.Iter();
         canStart = true;
         while (startedCount < kThreadCount) {
         }
 
-        for (int element : iter) {
+        for (int element : Iter) {
             actualBefore.push_back(element);
         }
     }
@@ -201,14 +200,14 @@ TEST(ThreadSafeIntrusiveListTest, IterWhileConcurrentEmplace) {
     EXPECT_THAT(actualBefore, testing::ElementsAreArray(expectedBefore));
 
     std::vector<int> actualAfter;
-    for (int element : list.iter()) {
+    for (int element : list.Iter()) {
         actualAfter.push_back(element);
     }
 
     EXPECT_THAT(actualAfter, testing::UnorderedElementsAreArray(expectedAfter));
 }
 
-TEST(ThreadSafeIntrusiveListTest, IterWhileConcurrentErase) {
+TEST(SingleLockListTest, IterWhileConcurrentErase) {
     IntList list;
     constexpr int kThreadCount = 100;
 
@@ -216,29 +215,29 @@ TEST(ThreadSafeIntrusiveListTest, IterWhileConcurrentErase) {
     std::vector<int*> items;
     for (int i = 0; i < kThreadCount; ++i) {
         expectedBefore.push_front(i);
-        items.push_back(list.emplace(i));
+        items.push_back(list.Emplace(i));
     }
 
     std::atomic<bool> canStart(false);
     std::atomic<int> startedCount(0);
     std::vector<std::thread> threads;
     for (int* item : items) {
-        threads.emplace_back([item, &list, &canStart, &startedCount]() {
+        threads.Emplace_back([item, &list, &canStart, &startedCount]() {
             while (!canStart) {
             }
             ++startedCount;
-            list.erase(item);
+            list.Erase(item);
         });
     }
 
     std::vector<int> actualBefore;
     {
-        auto iter = list.iter();
+        auto iter = list.Iter();
         canStart = true;
         while (startedCount < kThreadCount) {
         }
 
-        for (int element : iter) {
+        for (int element : Iter) {
             actualBefore.push_back(element);
         }
     }
@@ -250,7 +249,7 @@ TEST(ThreadSafeIntrusiveListTest, IterWhileConcurrentErase) {
     EXPECT_THAT(actualBefore, testing::ElementsAreArray(expectedBefore));
 
     std::vector<int> actualAfter;
-    for (int element : list.iter()) {
+    for (int element : list.Iter()) {
         actualAfter.push_back(element);
     }
 
@@ -271,22 +270,21 @@ private:
 
 } // namespace
 
-TEST(ThreadSafeIntrusiveListTest, PinnedType) {
-    ThreadSafeIntrusiveList<Pinned> list;
+TEST(SingleLockListTest, PinnedType) {
+    SingleLockList<Pinned> list;
     constexpr int kFirst = 1;
 
-    Pinned* item = list.emplace(kFirst);
+    Pinned* item = list.Emplace(kFirst);
     EXPECT_THAT(item->value(), kFirst);
 
-    list.erase(item);
+    list.Erase(item);
 
     std::vector<Pinned*> actualAfter;
-    for (auto& element : list.iter()) {
+    for (auto& element : list.Iter()) {
         actualAfter.push_back(&element);
     }
 
     EXPECT_THAT(actualAfter, testing::IsEmpty());
 }
 
-} // namespace mm
 } // namespace kotlin

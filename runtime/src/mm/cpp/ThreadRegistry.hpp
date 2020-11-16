@@ -9,7 +9,7 @@
 #include <pthread.h>
 
 #include "ThreadData.hpp"
-#include "ThreadSafeIntrusiveList.hpp"
+#include "SingleLockList.hpp"
 #include "Utils.h"
 
 namespace kotlin {
@@ -20,7 +20,7 @@ public:
     static ThreadRegistry& instance() noexcept { return instance_; }
 
     ThreadData* RegisterCurrentThread() noexcept {
-        ThreadData* threadData = list_.emplace(pthread_self());
+        ThreadData* threadData = list_.Emplace(pthread_self());
         ThreadData*& currentData = currentThreadData_;
         RuntimeAssert(currentData == nullptr, "This thread already had some data assigned to it.");
         currentData = threadData;
@@ -30,12 +30,12 @@ public:
     // Can only be called with `threadData` returned from `RegisterCurrentThread`.
     // `threadData` cannot be used after this call.
     void Unregister(ThreadData* threadData) noexcept {
-        list_.erase(threadData);
+        list_.Erase(threadData);
         // Do not touch `currentThreadData_` as TLS may already have been deallocated.
     }
 
     // Locks `ThreadRegistry` for safe iteration.
-    ThreadSafeIntrusiveList<ThreadData>::Iterable Iter() noexcept { return list_.iter(); }
+    SingleLockList<ThreadData>::Iterable Iter() noexcept { return list_.Iter(); }
 
     // Try not to use it very often, as (1) thread local access can be slow on some platforms,
     // (2) TLS gets deallocated before our thread destruction hooks run.
@@ -50,7 +50,7 @@ private:
 
     static thread_local ThreadData* currentThreadData_;
 
-    ThreadSafeIntrusiveList<ThreadData> list_;
+    SingleLockList<ThreadData> list_;
 };
 
 } // namespace mm
