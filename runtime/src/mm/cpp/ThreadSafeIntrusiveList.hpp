@@ -9,7 +9,6 @@
 #include <cstddef>
 #include <memory>
 #include <mutex>
-#include <type_traits>
 
 #include "CppSupport.hpp"
 #include "Utils.h"
@@ -27,7 +26,7 @@ public:
     public:
         explicit Iterator(Node* node) noexcept : node_(node) {}
 
-        Value& operator*() noexcept { return *node_->asValue(); }
+        Value& operator*() noexcept { return node_->value; }
 
         Iterator& operator++() noexcept {
             node_ = node_->next.get();
@@ -58,7 +57,7 @@ public:
     template <typename... Args>
     Value* emplace(Args... args) noexcept {
         auto node = kotlin::make_unique<Node>(args...);
-        auto* result = node.get()->asValue();
+        auto* result = &node.get()->value;
         std::lock_guard<SimpleMutex> guard(mutex_);
         if (root_) {
             root_->previous = node.get();
@@ -72,7 +71,7 @@ public:
     // to erase some other value is undefined behaviour. Using `value` after
     // `erase` is undefined behaviour.
     void erase(Value* value) noexcept {
-        auto* node = Node::fromValue(value);
+        auto* node = Node::from(value);
         std::lock_guard<SimpleMutex> guard(mutex_);
         if (root_.get() == node) {
             root_ = std::move(node->next);
@@ -109,14 +108,8 @@ private:
         std::unique_ptr<Node> next;
         Node* previous = nullptr; // weak
 
-        ALWAYS_INLINE static Node* fromValue(Value* value) { return reinterpret_cast<Node*>(value); }
-        ALWAYS_INLINE Value* asValue() { return reinterpret_cast<Value*>(this); }
+        ALWAYS_INLINE static Node* from(Value* value) { return wrapper_cast(Node, value, value); }
     };
-
-    // It's valid to `reinterpret_cast` between struct type and it's first data member.
-    // See https://en.cppreference.com/w/cpp/language/data_members#Standard_layout
-    static_assert(std::is_standard_layout<Node>::value, "Node must be standard layout");
-    static_assert(offsetof(Node, value) == 0, "value must be at 0 offset");
 
     std::unique_ptr<Node> root_;
     // TODO: Consider different locking mechanisms.

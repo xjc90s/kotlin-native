@@ -15,6 +15,7 @@
  */
 
 #include <cstdint>
+#include <type_traits>
 #include "KAssert.h"
 
 #ifndef RUNTIME_UTILS_H
@@ -101,19 +102,45 @@ protected:
     ~NoCopyOrMove() = default;
 };
 
-// Export type `Inner` under a different name `Name` with no-op conversion functions between them.
-// Useful if you want to export internal C++ class as public C struct.
-#define WRAP_TYPE(kind, Name, Inner) \
-    kind Name { \
-    public: \
-        Inner inner; \
-        ALWAYS_INLINE static Name* from(Inner* inner) { return reinterpret_cast<Name*>(inner); } \
-        ALWAYS_INLINE Inner* to() { return reinterpret_cast<Inner*>(this); } \
-    }; \
-    /* It's valid to `reinterpret_cast` between struct type and it's first data member. \
-     * See https://en.cppreference.com/w/cpp/language/data_members#Standard_layout \
-     */ \
-    static_assert(std::is_standard_layout<Name>::value, #Name " must be standard layout"); \
-    static_assert(offsetof(Name, inner) == 0, "inner must be at 0 offset")
+// Given
+// struct SomeWrapper {
+//     SomeType value;
+//     ... // (possibly) some other fields
+// };
+// allows to cast from `SomeValue*` to `SomeWrapper*` as no-op. It only works
+// if `SomeWrapper` is standard layout and `value` is the first non-static data member.
+// See https://en.cppreference.com/w/cpp/language/data_members#Standard_layout
+//
+// Useful for exporting SomeType under a different name (e.g. exporting inner C++ class
+// as public C struct).
+//
+// Also useful for implementing a form of private inheritance. It allows inheriting from
+// primitive types, however there're no virtual functions (including virtual destructor).
+// For example:
+// // Module A
+// struct SomeType { ... };
+// // Module B API
+// SomeType* constructSomeType(Args...);
+// void useSomeType(SomeType*);
+// // Module B
+// struct InternalType {
+//     SomeType value;
+//     InternalData extra;
+// };
+// SomeType* constructSomeType(Args... args) {
+//     auto* internalType = new InternalType{ SomeType(args...), InternalData(...) };
+//     return &internalType->value;
+// }
+// void useSomeType(SomeType* value) {
+//     InternalType* internalType = wrapper_cast(InternalType, value, value);
+//     // Do something with InternalType
+// }
+#define wrapper_cast(Wrapper, inner, field) \
+    /* With -O2 this lambda does not exist in the bitcode. */ \
+    []() { \
+        static_assert(std::is_standard_layout<Wrapper>::value, #Wrapper " must be standard layout"); \
+        static_assert(offsetof(Wrapper, field) == 0, #field " must be at 0 offset"); \
+    }(), \
+            reinterpret_cast<Wrapper*>(inner)
 
 #endif // RUNTIME_UTILS_H

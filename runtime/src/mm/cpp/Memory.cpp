@@ -5,15 +5,17 @@
 
 #include "Memory.h"
 
-#include <type_traits>
-
 #include "ThreadData.hpp"
 #include "ThreadRegistry.hpp"
 #include "Utils.h"
 
 extern "C" {
 
-WRAP_TYPE(struct, MemoryState, kotlin::mm::ThreadData);
+struct MemoryState {
+    kotlin::mm::ThreadData data;
+
+    ALWAYS_INLINE static MemoryState* from(kotlin::mm::ThreadData* data) { return wrapper_cast(MemoryState, data, data); }
+};
 
 MemoryState* InitMemory() {
     auto* data = kotlin::mm::ThreadRegistry::instance().RegisterCurrentThread();
@@ -21,7 +23,7 @@ MemoryState* InitMemory() {
 }
 
 void DeinitMemory(MemoryState* state) {
-    kotlin::mm::ThreadRegistry::instance().Unregister(state->to());
+    kotlin::mm::ThreadRegistry::instance().Unregister(&state->data);
 }
 
 } // extern "C"
