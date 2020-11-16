@@ -101,25 +101,34 @@ internal object nativeMemUtils {
     // 256 buckets for sizes <= 2048 padded to 8
     // 256 buckets for sizes <= 64KB padded to 256
     // 256 buckets for sizes <= 1MB padded to 4096
-    private val smallChunks = LongArray(256)
-    private val mediumChunks = LongArray(256)
-    private val bigChunks = LongArray(256)
+    private const val ChunkBucketSize = 256
+    // Alignments are such that overhead is approx 10%.
+    private const val SmallChunksSizeAlignment = 8
+    private const val MediumChunksSizeAlignment = 256
+    private const val BigChunksSizeAlignment = 4096
+    private const val MaxSmallSize = ChunkBucketSize * SmallChunksSizeAlignment
+    private const val MaxMediumSize = ChunkBucketSize * MediumChunksSizeAlignment
+    private const val MaxBigSize = ChunkBucketSize * BigChunksSizeAlignment
+    private const val ChunkHeaderSize = 2 * Int.SIZE_BYTES // chunk size + alignment hop size.
+
+    private val smallChunks = LongArray(ChunkBucketSize)
+    private val mediumChunks = LongArray(ChunkBucketSize)
+    private val bigChunks = LongArray(ChunkBucketSize)
 
     // Chunk layout: [chunk size,...padding...,diff to start,aligned data start,.....data.....]
     fun alloc(size: Long, align: Int): NativePointed {
-        val chunkHeaderSize = 8 // chunk size + alignment hop size.
-        val totalChunkSize = chunkHeaderSize + size + align
-        val ptr = chunkHeaderSize + when {
-            totalChunkSize <= 2048 -> allocFromFreeList(totalChunkSize.toInt(), 8, smallChunks)
-            totalChunkSize <= 64 * 1024 -> allocFromFreeList(totalChunkSize.toInt(), 256, mediumChunks)
-            totalChunkSize <= 1024 * 1024 -> allocFromFreeList(totalChunkSize.toInt(), 4096, bigChunks)
+        val totalChunkSize = ChunkHeaderSize + size + align
+        val ptr = ChunkHeaderSize + when {
+            totalChunkSize <= MaxSmallSize -> allocFromFreeList(totalChunkSize.toInt(), SmallChunksSizeAlignment, smallChunks)
+            totalChunkSize <= MaxMediumSize -> allocFromFreeList(totalChunkSize.toInt(), MediumChunksSizeAlignment, mediumChunks)
+            totalChunkSize <= MaxBigSize -> allocFromFreeList(totalChunkSize.toInt(), BigChunksSizeAlignment, bigChunks)
             else -> unsafe.allocateMemory(totalChunkSize).also {
                 // The actual size is not used. Just put value bigger than the biggest threshold.
                 unsafe.putInt(it, Int.MAX_VALUE)
             }
         }
         val alignedPtr = alignUp(ptr, align)
-        unsafe.putInt(alignedPtr - 4, (alignedPtr - ptr).toInt())
+        unsafe.putInt(alignedPtr - Int.SIZE_BYTES, (alignedPtr - ptr).toInt())
         return interpretOpaquePointed(alignedPtr)
     }
 
@@ -160,12 +169,12 @@ internal object nativeMemUtils {
     }
 
     fun free(mem: NativePtr) {
-        val chunkStart = mem - 8 - unsafe.getInt(mem - 4)
+        val chunkStart = mem - ChunkHeaderSize - unsafe.getInt(mem - Int.SIZE_BYTES)
         val chunkSize = unsafe.getInt(chunkStart)
         when {
-            chunkSize <= 2048 -> freeToFreeList(chunkSize, 8, smallChunks, chunkStart)
-            chunkSize <= 64 * 1024 -> freeToFreeList(chunkSize, 256, mediumChunks, chunkStart)
-            chunkSize <= 1024 * 1024 -> freeToFreeList(chunkSize, 4096, bigChunks, chunkStart)
+            chunkSize <= MaxSmallSize -> freeToFreeList(chunkSize, SmallChunksSizeAlignment, smallChunks, chunkStart)
+            chunkSize <= MaxMediumSize -> freeToFreeList(chunkSize, MediumChunksSizeAlignment, mediumChunks, chunkStart)
+            chunkSize <= MaxBigSize -> freeToFreeList(chunkSize, BigChunksSizeAlignment, bigChunks, chunkStart)
             else -> unsafe.freeMemory(chunkStart)
         }
     }
